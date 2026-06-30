@@ -102,4 +102,46 @@ class CacheMd5paramsRepository
             ]
         );
     }
+
+    /**
+     *  Delete the stored variables using the hash value to access the database
+     */
+    public function delete(string $md5): int
+    {
+        $result = 0;
+        if ($md5 != '') {
+            $connection = $this->getConnection();
+            $result = $connection->delete(
+                $this->table,
+                [
+                    'md5hash' => $md5
+                ]
+            );
+        }
+        return $result;
+    }
+
+    /**
+     *  Delete the stored variables using the hash value to access the database
+     *  Return the affected rows.
+     */
+    public function deleteOutdatedHours(int $hours, int $type = 2): int
+    {
+        $maxLifetime = time() - (3600 * $hours);
+        $queryBuilder = $this->getQueryBuilder();
+        return $queryBuilder
+            ->delete($this->table)
+            ->andWhere(
+                $queryBuilder->expr()->lte(
+                    'tstamp',
+                    $queryBuilder->createNamedParameter($maxLifetime, Connection::PARAM_INT)
+                ),
+                $queryBuilder->expr()->eq(
+                    'type',
+                    $queryBuilder->createNamedParameter($type, Connection::PARAM_INT)
+                ),
+            )
+            ->executeStatement();
+    }
 }
+
